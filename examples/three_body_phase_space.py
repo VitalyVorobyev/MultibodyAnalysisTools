@@ -12,14 +12,14 @@ plt.style.use('seaborn-white')
 plt.rc('font', size=26)
 plt.rc('text', usetex=True)
 
-def show_phase_space(phsh, rtype1, rtype2, num=None):
+def show_phase_space(phsp, rtype1, rtype2, num=None):
     """ Plot phase space edge """
-    mr1_min, mr1_max = phsh.mass_sq_range[rtype1]
-    mr2_min, mr2_max = phsh.mass_sq_range[rtype2]
+    mr1_min, mr1_max = phsp.mass_sq_range[rtype1]
+    mr2_min, mr2_max = phsp.mass_sq_range[rtype2]
     mr1_range = mr1_max - mr1_min
     mr2_range = mr2_max - mr2_min
     mr1_space = np.linspace(mr1_min, mr1_max, 1000)
-    mr2_mins, mr2_maxs = phsh.mr_sq_range(rtype2, mr1_space, rtype1)
+    mr2_mins, mr2_maxs = phsp.mr_sq_range(rtype2, mr1_space, rtype1)
     height = int(7. * mr1_range / mr2_range)+1 if mr1_range < mr2_range else\
              int(7. * mr2_range / mr1_range)+1
     plt.figure(num=num, figsize=(7, height))

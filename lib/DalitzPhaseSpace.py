@@ -37,6 +37,11 @@ class DalitzPhaseSpace(object):
             'AC' : [self.mr_sq_min('AC'), self.mr_sq_max('AC')],
             'BC' : [self.mr_sq_min('BC'), self.mr_sq_max('BC')]
         }
+        self.mass_range = {
+            'AB' : np.sqrt(self.mass_sq_range['AB']),
+            'AC' : np.sqrt(self.mass_sq_range['AC']),
+            'BC' : np.sqrt(self.mass_sq_range['BC'])
+        }
     def __str__(self):
         """ to str """
         return 'Phase space D -> ABC, where\n mD = ' + str(self.mass[-1]) +\
@@ -81,6 +86,18 @@ class DalitzPhaseSpace(object):
             for D -> (r -> AB)C decay """
         return (self.mass_sq[-1] - mr_sq - self.other_mass_sq[rtype]) /\
                (2. * np.sqrt(mr_sq))
+    def momentum_a(self, mr_sq, rtype):
+        """ Momentum of particle A in the resonance frame
+            for r -> AB decay """
+        return np.sqrt(self.energy_a(mr_sq, rtype)**2 - self.prod_mass_sq[rtype][0])
+    def momentum_b(self, mr_sq, rtype):
+        """ Momentum of particle B in the resonance frame
+            for r -> AB decay (must be equal momentum_a) """
+        return np.sqrt(self.energy_b(mr_sq, rtype)**2 - self.prod_mass_sq[rtype][1])
+    def momentum_c(self, mr_sq, rtype):
+        """ Momentum of particle C in the resonance frame
+            for D -> (r -> AB)C decay """
+        return np.sqrt(self.energy_c(mr_sq, rtype)**2 - self.other_mass_sq[rtype])
     def energy_res(self, mr_sq, rtype):
         """ Resonance energy in the D rest frame """
         return (self.mass_sq[-1] + mr_sq - self.other_mass_sq[rtype]) /\
@@ -100,3 +117,14 @@ class DalitzPhaseSpace(object):
     def mass_d(self):
         """ Mass of mother particle """
         return self.mass[3]
+    def phsp_factor(self, mass_sq, rtype):
+        """ Phase space factor """
+        rtype2 = 'AC' if rtype != 'AC' else 'BC'
+        mr2_mins, mr2_maxs = self.mr_sq_range(rtype2, mass_sq, rtype)
+        space_factor = mr2_maxs - mr2_mins
+        return space_factor / max(space_factor)
+
+def limited_mass_linspace(mmin, mmax, ndots, phsp, rtype):
+    """ Set phase space limits if necessary """
+    return np.linspace(max(phsp.mass_range[rtype][0], mmin),
+                       min(mmax, phsp.mass_range[rtype][1]), ndots+1)[:-1]
