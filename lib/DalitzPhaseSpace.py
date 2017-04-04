@@ -42,6 +42,9 @@ class DalitzPhaseSpace(object):
             'AC' : np.sqrt(self.mass_sq_range['AC']),
             'BC' : np.sqrt(self.mass_sq_range['BC'])
         }
+    def set_ma(self, ma):
+        """ Change m(A) """
+        self.__init__(ma, self.mass[1], self.mass[2], self.mass[3])
     def __str__(self):
         """ to str """
         return 'Phase space D -> ABC, where\n mD = ' + str(self.mass[-1]) +\
@@ -123,6 +126,37 @@ class DalitzPhaseSpace(object):
         mr2_mins, mr2_maxs = self.mr_sq_range(rtype2, mass_sq, rtype)
         space_factor = mr2_maxs - mr2_mins
         return space_factor / max(space_factor)
+    def cos_hel(self, mr_sq, rtype):
+        """ Helicity angle """
+        mr_sq_min, mr_sq_max = self.mass_sq_range[rtype]
+        return (mr_sq_min + mr_sq_max - 2.*mr_sq) / (mr_sq_max - mr_sq_min)
+    def third_mass_sq(self, mrsq1, mrsq2):
+        """ The third Dalitz variable """
+        return -(mrsq1 + mrsq2) + sum(self.mass_sq)
+    def inside(self, msq1, msq2, rtype1, rtype2):
+        """ If point inside physical phase space region """
+        msq1_min, msq1_max = self.mr_sq_range(rtype1, msq2, rtype2)
+        return (msq1 >= msq1_min) & (msq1_max >= msq1)
+    def uniform_sample(self, rtype1, rtype2, nevt, majorant=None):
+        """ Uniformly distributed events """
+        msq1_lo, msq1_hi = self.mass_sq_range[rtype1]
+        msq2_lo, msq2_hi = self.mass_sq_range[rtype2]
+        msq1, msq2 = np.array([]), np.array([])
+        if majorant is not None:
+            maj = np.array([])
+        while len(msq1) < nevt:
+            add_msq1 = np.random.uniform(msq1_lo, msq1_hi, min(10**6, 3*nevt))
+            add_msq2 = np.random.uniform(msq2_lo, msq2_hi, min(10**6, 3*nevt))
+            mask = self.inside(add_msq1, add_msq2, rtype1, rtype2)
+            msq1 = np.append(msq1, add_msq1[mask])
+            msq2 = np.append(msq2, add_msq2[mask])
+            if majorant is not None:
+                add_maj = np.random.uniform(0, majorant, min(10**6, 3*nevt))
+                np.append(maj, add_maj[mask])
+        if majorant is not None:
+            return [msq1[:nevt], msq2[:nevt], maj[:nevt]]
+        else:
+            return [msq1[:nevt], msq2[:nevt]]
 
 def limited_mass_linspace(mmin, mmax, ndots, phsp, rtype):
     """ Set phase space limits if necessary """

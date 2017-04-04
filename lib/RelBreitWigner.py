@@ -22,11 +22,11 @@ class RelBW(object):
         " mass = " + str(self.mass) + ", width = " + str(self.width)
 
 def bwff(mom, mom0, radius, spin):
-    """ Blatt-Weisskopf formfactor for intermediate resonance """
-    zvals = np.array([mom*radius, mom0*radius])
+    """ Blatt-Weisskopf formfactor """
     if spin == 0:
         return 1.
-    elif spin == 1:
+    zvals = radius*np.array([mom, mom0])
+    if spin == 1:
         zvals = 1 + zvals**2
     elif spin == 2:
         zvals = zvals**2
@@ -48,7 +48,8 @@ class MassDependentWidth(object):
         self.momentum = momentum
     def __call__(self, mass, momentum, ffact):
         """ Get width value """
-        return self.width * (momentum / self.momentum)**self.power * self.mass / mass * ffact**2
+        return self.width * (momentum / self.momentum)**self.power * self.mass /\
+               mass * ffact**2
 
 class VarWidthRelBW(object):
     """ Relativistic Breit-Wigner lineshape with mass-dependent width """
@@ -63,4 +64,4 @@ class VarWidthRelBW(object):
         mass = np.sqrt(mass_sq)
         ffact = bwff(momentum, self.width.momentum, self.radius, self.spin)
         width = self.width(mass, momentum, ffact)
-        return 1. / (- mass_sq + self.mass_sq - 1j * mass * width)
+        return 1. / (-mass_sq + self.mass_sq - 1j * mass * width)
