@@ -130,6 +130,13 @@ class DalitzPhaseSpace(object):
         """ Helicity angle """
         mr_sq_min, mr_sq_max = self.mass_sq_range[rtype]
         return (mr_sq_min + mr_sq_max - 2.*mr_sq) / (mr_sq_max - mr_sq_min)
+    def cos_hel2(self, mr1_sq, mr2_sq, rtype1, rtype2):
+        """ Helicity angle """
+        mr2_sq_min, mr2_sq_max = self.mr_sq_range(rtype2, mr1_sq, rtype1)# self.mass_sq_range[rtype]
+        return (mr2_sq_min + mr2_sq_max - 2.*mr2_sq) / (mr2_sq_max - mr2_sq_min)
+    # def cos_hel3(self, rtype, mr1_sq, mr2_sq, rtype1, rtype2):
+    #     """ Helicity angle """
+    #     eA = self.energy_a()
     def third_mass_sq(self, mrsq1, mrsq2):
         """ The third Dalitz variable """
         return -(mrsq1 + mrsq2) + sum(self.mass_sq)
@@ -152,7 +159,7 @@ class DalitzPhaseSpace(object):
             msq2 = np.append(msq2, add_msq2[mask])
             if majorant is not None:
                 add_maj = np.random.uniform(0, majorant, min(10**6, 3*nevt))
-                np.append(maj, add_maj[mask])
+                maj = np.append(maj, add_maj[mask])
         if majorant is not None:
             return [msq1[:nevt], msq2[:nevt], maj[:nevt]]
         else:

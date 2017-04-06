@@ -26,6 +26,10 @@ def width_dep_bw(phsp, rtype, mass, width, spin, masses):
     momt = phsp.momentum_res(mass_sq, rtype)
     return res(mass_sq, momt)
 
+def dens(amp):
+    """ Probability dencity from complex amplitude """
+    return amp.real**2 + amp.imag**2
+
 NFRAMES = 200
 OMAMP = 0.03
 PHSP = DalitzPhaseSpace(.475, .135, .135, 1.865)
@@ -39,9 +43,10 @@ MASSES_SQ = MASSES**2
 RHO_AMP = width_dep_bw(PHSP, RTYPE, MRHO, WRHO, 1, MASSES)
 OMEGA_AMP = width_dep_bw(PHSP, RTYPE, MOMEGA, WOMEGA, 1, MASSES)
 SPACE_FACTOR = PHSP.phsp_factor(MASSES_SQ, RTYPE)
+YMAX = 1.05*max(dens(RHO_AMP+OMAMP*OMEGA_AMP))
 
 FIG = plt.figure()
-AXES = plt.axes(xlim=(min(MASSES), max(MASSES)), ylim=(0, 1.05*max(abs(RHO_AMP+OMAMP*OMEGA_AMP))))
+AXES = plt.axes(xlim=(min(MASSES), max(MASSES)), ylim=(0, YMAX))
 LINE, = AXES.plot([], [], lw=1, linestyle='-', color='blue')
 
 def init():
@@ -53,15 +58,16 @@ def animate(i):
     """ Update frame """
     print 'Frame', i, '/', NFRAMES
     ampl_omega = OMAMP*complex(np.cos(i * np.pi / 100), np.sin(i * np.pi / 100))
-    LINE.set_data(MASSES, abs(RHO_AMP + ampl_omega * OMEGA_AMP) * SPACE_FACTOR)
+    pdens = dens(RHO_AMP + ampl_omega * OMEGA_AMP)
+    LINE.set_data(MASSES, pdens * SPACE_FACTOR)
     return LINE,
 
 def rho_omega_animated():
     """ Make animation! """
     anim = animation.FuncAnimation(FIG, animate, init_func=init,
                                    frames=NFRAMES, interval=20, blit=True)
-    # anim.save('basic_animation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
-    anim.save('basic_animation.gif', dpi=80, writer='imagemagick')
+    anim.save('basic_animation.mp4', fps=30, extra_args=['-vcodec', 'libx264'])
+    # anim.save('basic_animation.gif', dpi=80, writer='imagemagick')
 
 if __name__ == '__main__':
     rho_omega_animated()
