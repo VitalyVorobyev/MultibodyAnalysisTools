@@ -5,6 +5,7 @@ __email__ = "vit.vorobiev@gmail.com"
 __date__ = "April 2017"
 
 import numpy as np
+import itertools
 
 class DalitzPhaseSpace(object):
     """ Dalitz phase space for spinless particles """
@@ -51,7 +52,7 @@ class DalitzPhaseSpace(object):
             ', mA = ' + str(self.mass[0]) +\
             ', mB = ' + str(self.mass[1]) +\
             ', mC = ' + str(self.mass[2])
-    def mr_sq_range(self, rtype, mr2_sq, r2type):
+    def mr_sq_range(self, rtype, mr2_sq, r2type, savep=False):
         """ Get m(rtype)^2 range for a m(r2type)^2 value """
         en_c = self.energy_c(mr2_sq, r2type)  # e(C) for D -> rC
         mass_sq_c = self.other_mass_sq[r2type]  # m(C)^2
@@ -66,8 +67,13 @@ class DalitzPhaseSpace(object):
         en_sum = en_c + en_p
         mo_sum = mo_c + mo_p
         mo_dif = mo_c - mo_p
-        return np.array([(en_sum - mo_sum) * (en_sum + mo_sum),
-                         (en_sum - mo_dif) * (en_sum + mo_dif)])
+        if not savep:
+            return np.array([(en_sum - mo_sum) * (en_sum + mo_sum),
+                             (en_sum - mo_dif) * (en_sum + mo_dif)])
+        else:
+            return [np.array([(en_sum - mo_sum) * (en_sum + mo_sum),
+                              (en_sum - mo_dif) * (en_sum + mo_dif)]),
+                    mo_c, mo_p]
     def mr_sq_max(self, rtype):
         """ Get max value of m(AB)^2 """
         return (self.mass[3] - self.other_mass[rtype])**2
@@ -92,22 +98,22 @@ class DalitzPhaseSpace(object):
     def momentum_a(self, mr_sq, rtype):
         """ Momentum of particle A in the resonance frame
             for r -> AB decay """
-        return np.sqrt(self.energy_a(mr_sq, rtype)**2 - self.prod_mass_sq[rtype][0])
+        return np.sqrt(abs(self.energy_a(mr_sq, rtype)**2 - self.prod_mass_sq[rtype][0]))
     def momentum_b(self, mr_sq, rtype):
         """ Momentum of particle B in the resonance frame
             for r -> AB decay (must be equal momentum_a) """
-        return np.sqrt(self.energy_b(mr_sq, rtype)**2 - self.prod_mass_sq[rtype][1])
+        return np.sqrt(abs(self.energy_b(mr_sq, rtype)**2 - self.prod_mass_sq[rtype][1]))
     def momentum_c(self, mr_sq, rtype):
         """ Momentum of particle C in the resonance frame
             for D -> (r -> AB)C decay """
-        return np.sqrt(self.energy_c(mr_sq, rtype)**2 - self.other_mass_sq[rtype])
+        return np.sqrt(abs(self.energy_c(mr_sq, rtype)**2 - self.other_mass_sq[rtype]))
     def energy_res(self, mr_sq, rtype):
         """ Resonance energy in the D rest frame """
         return (self.mass_sq[-1] + mr_sq - self.other_mass_sq[rtype]) /\
                (2. * self.mass[-1])
     def momentum_res(self, mr_sq, rtype):
         """ Resonance momentum in the D rest frame """
-        return np.sqrt(self.energy_res(mr_sq, rtype)**2 - mr_sq)
+        return np.sqrt(abs(self.energy_res(mr_sq, rtype)**2 - mr_sq))
     def mass_a(self):
         """ Mass of product A """
         return self.mass[0]
@@ -126,17 +132,19 @@ class DalitzPhaseSpace(object):
         mr2_mins, mr2_maxs = self.mr_sq_range(rtype2, mass_sq, rtype)
         space_factor = mr2_maxs - mr2_mins
         return space_factor / max(space_factor)
-    def cos_hel(self, mr_sq, rtype):
+    def cos_hel(self, mr1_sq, mr2_sq, rtype1, rtype2):
         """ Helicity angle """
-        mr_sq_min, mr_sq_max = self.mass_sq_range[rtype]
-        return (mr_sq_min + mr_sq_max - 2.*mr_sq) / (mr_sq_max - mr_sq_min)
-    def cos_hel2(self, mr1_sq, mr2_sq, rtype1, rtype2):
-        """ Helicity angle """
-        mr2_sq_min, mr2_sq_max = self.mr_sq_range(rtype2, mr1_sq, rtype1)# self.mass_sq_range[rtype]
+        mr2_sq_min, mr2_sq_max = self.mr_sq_range(rtype2, mr1_sq, rtype1)
         return (mr2_sq_min + mr2_sq_max - 2.*mr2_sq) / (mr2_sq_max - mr2_sq_min)
-    # def cos_hel3(self, rtype, mr1_sq, mr2_sq, rtype1, rtype2):
-    #     """ Helicity angle """
-    #     eA = self.energy_a()
+    def mompq(self, mr_sq, rtype):
+        """ Product of p(A) and p(D) on the r1 frame """
+        return self.momentum_a(mr_sq, rtype) * self.momentum_c(mr_sq, rtype)
+    def cos_hel_pq_pr(self, mr1_sq, mr2_sq, rtype1, rtype2):
+        """ Calculate effectively all kinematics for a resonance """
+        mr2_rng, mom_c, mom_p = self.mr_sq_range(rtype2, mr1_sq, rtype1, True)
+        mom_r = self.momentum_res(mr1_sq, rtype1)
+        cos_hel = (mr2_rng[0] + mr2_rng[1] - 2.*mr2_sq) / (mr2_rng[1] - mr2_rng[0])
+        return cos_hel, mom_c * mom_p, mom_r
     def third_mass_sq(self, mrsq1, mrsq2):
         """ The third Dalitz variable """
         return -(mrsq1 + mrsq2) + sum(self.mass_sq)
@@ -164,7 +172,17 @@ class DalitzPhaseSpace(object):
             return [msq1[:nevt], msq2[:nevt], maj[:nevt]]
         else:
             return [msq1[:nevt], msq2[:nevt]]
-
+    def grid(self, rtype1, rtype2, size=500):
+        """ Get a grid within the phase space """
+        min1, max1 = self.mass_sq_range[rtype1]
+        min2, max2 = self.mass_sq_range[rtype2]
+        lsp1 = np.linspace(min1, max1, size)
+        lsp2 = np.linspace(min2, max2, size)
+        grid = np.meshgrid(lsp1, lsp2)
+        msq1 = np.reshape(grid[0], size**2)
+        msq2 = np.reshape(grid[1], size**2)
+        mask = self.inside(msq1, msq2, rtype1, rtype2)
+        return [msq1[mask], msq2[mask]]
 def limited_mass_linspace(mmin, mmax, ndots, phsp, rtype):
     """ Set phase space limits if necessary """
     return np.linspace(max(phsp.mass_range[rtype][0], mmin),

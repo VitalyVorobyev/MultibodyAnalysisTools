@@ -25,39 +25,18 @@ class DalitzModel(DalitzPhaseSpace):
         """ Complex amplitude """
         mab_sq, mac_sq, mbc_sq = self.unravel_masses(msq1, msq2, rtype1, rtype2)
         result = 0. + 1j*0.
-        if len(self.rlist['AB']) != 0: # D -> R(AB) + C
-            mom_a = self.momentum_a(mab_sq, 'AB')
-            mom_c = self.momentum_c(mab_sq, 'AB')
-            eng_a = np.sqrt(mom_a**2 + self.mass_sq[0])
-            eng_c = np.sqrt(mom_c**2 + self.mass_sq[2])
-            cos_hel = (self.mass_sq[0] + self.mass_sq[2] + 2.*eng_a*eng_c - mac_sq) /\
-                      (2. * mom_a * mom_c)
-            mom_r = self.momentum_res(mab_sq, 'AB')
-            mompq = mom_a * mom_r
+        if len(self.rlist['AB']) != 0:  # D -> R(AB) + C
+            cos_hel, mompq, mom_r = self.cos_hel_pq_pr(mab_sq, mac_sq, 'AB', 'AC')
             for res, ampl in self.rlist['AB']:
                 if isinstance(res, BWRes):
                     result += ampl*res(mab_sq, mom_r, cos_hel, mompq)
-        if len(self.rlist['AC']) != 0: # D -> R(AC) + B
-            mom_c = self.momentum_b(mac_sq, 'AC')
-            mom_b = self.momentum_c(mac_sq, 'AC')
-            eng_c = np.sqrt(mom_c**2 + self.mass_sq[2])
-            eng_b = np.sqrt(mom_b**2 + self.mass_sq[1])
-            cos_hel = (self.mass_sq[1] + self.mass_sq[2] + 2.*eng_b*eng_c - mbc_sq) /\
-                      (2. * mom_b * mom_c)
-            mom_r = self.momentum_res(mac_sq, 'AC')
-            mompq = mom_c * mom_r
+        if len(self.rlist['AC']) != 0:  # D -> R(AC) + B
+            cos_hel, mompq, mom_r = self.cos_hel_pq_pr(mac_sq, mab_sq, 'AC', 'AB')
             for res, ampl in self.rlist['AC']:
                 if isinstance(res, BWRes):
                     result += ampl*res(mac_sq, mom_r, cos_hel, mompq)
-        if len(self.rlist['BC']) != 0: # D -> R(BC) + A
-            mom_b = self.momentum_a(mbc_sq, 'BC')
-            mom_a = self.momentum_c(mbc_sq, 'BC')
-            eng_b = np.sqrt(mom_b**2 + self.mass_sq[1])
-            eng_a = np.sqrt(mom_a**2 + self.mass_sq[0])
-            cos_hel = (self.mass_sq[0] + self.mass_sq[1] + 2.*eng_a*eng_b - mab_sq) /\
-                      (2. * mom_a * mom_b)
-            mom_r = self.momentum_res(mbc_sq, 'BC')
-            mompq = mom_b * mom_r
+        if len(self.rlist['BC']) != 0:  # D -> R(BC) + A
+            cos_hel, mompq, mom_r = self.cos_hel_pq_pr(mbc_sq, mac_sq, 'BC', 'AC')
             for res, ampl in self.rlist['BC']:
                 if isinstance(res, BWRes):
                     result += ampl*res(mbc_sq, mom_r, cos_hel, mompq)
@@ -83,6 +62,17 @@ class DalitzModel(DalitzPhaseSpace):
             msq2 = np.append(msq2, new_m2sq[mask])
             print len(msq1), 'events generated'
         return msq1[:nevt], msq2[:nevt]
+    def grid_dens(self, rtype1, rtype2, size=500):
+        """ Density values in grid nodes """
+        min1, max1 = self.mass_sq_range[rtype1]
+        min2, max2 = self.mass_sq_range[rtype2]
+        lsp1 = np.linspace(min1, max1, size)
+        lsp2 = np.linspace(min2, max2, size)
+        msq1g, msq2g = np.meshgrid(lsp1, lsp2)
+        mask = self.inside(msq1g, msq2g, rtype1, rtype2)
+        dens = self.density(msq1g, msq2g, rtype1, rtype2)
+        dens[~mask] = 0
+        return [msq1g, msq2g, dens]
     def unravel_masses(self, msq1, msq2, rtype1, rtype2):
         """ Define mAB, mAC and mBC """
         if rtype1 == 'AB':
