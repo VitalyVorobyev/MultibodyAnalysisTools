@@ -143,7 +143,9 @@ class DalitzPhaseSpace(object):
         """ Calculate effectively all kinematics for a resonance """
         mr2_rng, mom_c, mom_p = self.mr_sq_range(rtype2, mr1_sq, rtype1, True)
         mom_r = self.momentum_res(mr1_sq, rtype1)
-        cos_hel = (mr2_rng[0] + mr2_rng[1] - 2.*mr2_sq) / (mr2_rng[1] - mr2_rng[0])
+        np.seterr(divide='ignore')
+        cos_hel = np.divide(mr2_rng[0] + mr2_rng[1] - 2.*mr2_sq,\
+                            mr2_rng[1] - mr2_rng[0]+0.0000001)
         return cos_hel, mom_c * mom_p, mom_r
     def third_mass_sq(self, mrsq1, mrsq2):
         """ The third Dalitz variable """

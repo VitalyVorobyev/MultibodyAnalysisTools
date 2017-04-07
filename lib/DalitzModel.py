@@ -13,37 +13,45 @@ class DalitzModel(DalitzPhaseSpace):
         """ Constructor with DalitzPhaseSpace object """
         DalitzPhaseSpace.__init__(self, ma, mb, mc, md)
         self.rlist = {'AB' : [], 'AC' : [], 'BC' : []}
+        self.rdict = {}
         self.majorant = 0
     def add_res(self, res, rtype, ampl=1.+1j*.0):
         """ Add resonance to model """
         self.rlist[rtype].append([res, ampl])
-    def add_bw(self, mass, width, spin, rtype, ampl=1.+1j*.0):
+    def add_bw(self, name, mass, width, spin, rtype, ampl=1.+1j*.0):
         """ Add Breit-Wigner resonance """
         momentum = self.momentum_res(mass**2, rtype)
-        self.rlist[rtype].append([BWRes(mass, width, spin, momentum), ampl])
+        self.rdict[name] = {'prop' : BWRes(mass, width, spin, momentum),
+                            'ampl' : ampl}
+        self.rlist[rtype].append(name)
     def __call__(self, msq1, msq2, rtype1='AB', rtype2='AC'):
         """ Complex amplitude """
         mab_sq, mac_sq, mbc_sq = self.unravel_masses(msq1, msq2, rtype1, rtype2)
         result = 0. + 1j*0.
         if len(self.rlist['AB']) != 0:  # D -> R(AB) + C
             cos_hel, mompq, mom_r = self.cos_hel_pq_pr(mab_sq, mac_sq, 'AB', 'AC')
-            for res, ampl in self.rlist['AB']:
+            for rname in self.rlist['AB']:
+                res, ampl = self.rdict[rname]['prop'], self.rdict[rname]['ampl']
                 if isinstance(res, BWRes):
                     result += ampl*res(mab_sq, mom_r, cos_hel, mompq)
         if len(self.rlist['AC']) != 0:  # D -> R(AC) + B
             cos_hel, mompq, mom_r = self.cos_hel_pq_pr(mac_sq, mab_sq, 'AC', 'AB')
-            for res, ampl in self.rlist['AC']:
+            for rname in self.rlist['AC']:
+                res, ampl = self.rdict[rname]['prop'], self.rdict[rname]['ampl']
                 if isinstance(res, BWRes):
                     result += ampl*res(mac_sq, mom_r, cos_hel, mompq)
         if len(self.rlist['BC']) != 0:  # D -> R(BC) + A
             cos_hel, mompq, mom_r = self.cos_hel_pq_pr(mbc_sq, mac_sq, 'BC', 'AC')
-            for res, ampl in self.rlist['BC']:
+            for rname in self.rlist['BC']:
+                res, ampl = self.rdict[rname]['prop'], self.rdict[rname]['ampl']
                 if isinstance(res, BWRes):
                     result += ampl*res(mbc_sq, mom_r, cos_hel, mompq)
         return result
     def density(self, msq1, msq2, rtype1='AB', rtpe2='AC'):
         """ Probability density """
         amp = self(msq1, msq2, rtype1, rtpe2)
+        if isinstance(amp, (np.ndarray, np.generic)):
+            amp[~self.inside(msq1, msq2, rtype1, rtpe2)] = 0
         return amp.real**2 + amp.imag**2
     def assess_majorant(self, ntries=10**6):
         """ Assess majorant with ntries random tries """
