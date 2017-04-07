@@ -70,6 +70,49 @@ class DalitzModel(DalitzPhaseSpace):
             msq2 = np.append(msq2, new_m2sq[mask])
             print len(msq1), 'events generated'
         return msq1[:nevt], msq2[:nevt]
+    def mcmc_sample(self, nevt, rtype1='AB', rtype2='AC', alpha=0.1, batch=16):
+        """ Metropolis-Hastings sampling """
+        msq1_lo, msq1_hi = self.mass_sq_range[rtype1]
+        msq2_lo, msq2_hi = self.mass_sq_range[rtype2]
+        sigma1 = alpha * (msq1_hi - msq1_lo)
+        sigma2 = alpha * (msq2_hi - msq2_lo)
+        print 's1 = {}, s2 = {}'.format(sigma1, sigma2)
+        pos1, pos2 = self.grid(rtype1, rtype2, batch)
+        pos1, pos2 = pos1[1:-1], pos2[1:-1]
+        batch_size = len(pos1)
+        msq1, msq2 = np.array([], dtype='float'), np.array([], dtype='float')
+        density = self.density(pos1, pos2, rtype1, rtype2)
+        iteration = 1
+        ntries, naccepted = 0, 0
+        while (len(msq1) < nevt) & (iteration < 10**6):
+            if iteration % 1000 == 0:
+                print 'iteration {}, nevt {} / {}'.format(iteration, len(msq1), nevt)
+            # generate new positions (candidates)
+            if iteration % 2:  # update pos2
+                npos1, npos2 = pos1, pos2 + np.random.normal(0, sigma2, batch_size)
+            else:
+                npos1, npos2 = pos1 + np.random.normal(0, sigma1, batch_size), pos2
+            # remove positions outside the phase space
+            inside_mask = self.inside(npos1, npos2, rtype1, rtype2)
+            rejected = sum(~inside_mask)
+            if iteration % 2:
+                npos2[~inside_mask] = pos2[~inside_mask]
+            else:
+                npos1[~inside_mask] = pos1[~inside_mask]
+            ndensity = self.density(npos1, npos2, rtype1, rtype2)
+            acc_mask = ndensity / density > np.random.uniform(0, 1, batch_size)
+            if iteration % 2:
+                pos2[acc_mask] = npos2[acc_mask]
+            else:
+                pos1[acc_mask] = npos1[acc_mask]
+            density[acc_mask] = ndensity[acc_mask]
+            msq1 = np.append(msq1, pos1.flatten())
+            msq2 = np.append(msq2, pos2.flatten())
+            naccepted += sum(acc_mask) - rejected
+            ntries += batch_size
+            iteration += 1
+        print 'Acceptance rate = {}'.format(float(naccepted) / ntries)
+        return [msq1, msq2]
     def grid_dens(self, rtype1, rtype2, size=500):
         """ Density values in grid nodes """
         min1, max1 = self.mass_sq_range[rtype1]
