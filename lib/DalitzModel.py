@@ -80,13 +80,13 @@ class DalitzModel(DalitzPhaseSpace):
         pos1, pos2 = self.grid(rtype1, rtype2, batch)
         pos1, pos2 = pos1[1:-1], pos2[1:-1]
         batch_size = len(pos1)
-        msq1, msq2 = np.array([], dtype='float'), np.array([], dtype='float')
+        msq1, msq2 = [], []
         density = self.density(pos1, pos2, rtype1, rtype2)
         iteration = 1
         ntries, naccepted = 0, 0
-        while (len(msq1) < nevt) & (iteration < 10**6):
+        while (len(msq1)*batch_size < nevt) & (iteration < 10**6):
             if iteration % 1000 == 0:
-                print 'iteration {}, nevt {} / {}'.format(iteration, len(msq1), nevt)
+                print 'iteration {}, nevt {} / {}'.format(iteration, len(msq1)*batch_size, nevt)
             # generate new positions (candidates)
             if iteration % 2:  # update pos2
                 npos1, npos2 = pos1, pos2 + np.random.normal(0, sigma2, batch_size)
@@ -106,13 +106,12 @@ class DalitzModel(DalitzPhaseSpace):
             else:
                 pos1[acc_mask] = npos1[acc_mask]
             density[acc_mask] = ndensity[acc_mask]
-            msq1 = np.append(msq1, pos1.flatten())
-            msq2 = np.append(msq2, pos2.flatten())
+            msq1.append(list(pos1)), msq2.append(list(pos2))
             naccepted += sum(acc_mask) - rejected
             ntries += batch_size
             iteration += 1
         print 'Acceptance rate = {}'.format(float(naccepted) / ntries)
-        return [msq1, msq2]
+        return [np.array(msq1).flatten(), np.array(msq2).flatten()]
     def grid_dens(self, rtype1, rtype2, size=500):
         """ Density values in grid nodes """
         min1, max1 = self.mass_sq_range[rtype1]

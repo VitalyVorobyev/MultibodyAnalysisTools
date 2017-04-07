@@ -152,8 +152,11 @@ class DalitzPhaseSpace(object):
         return -(mrsq1 + mrsq2) + sum(self.mass_sq)
     def inside(self, msq1, msq2, rtype1, rtype2):
         """ If point inside physical phase space region """
-        msq1_min, msq1_max = self.mr_sq_range(rtype1, msq2, rtype2)
-        return (msq1 >= msq1_min) & (msq1_max >= msq1)
+        inside = (msq2 > self.mass_sq_range[rtype2][0]) &\
+                 (msq2 < self.mass_sq_range[rtype2][1])
+        msq1_min, msq1_max = self.mr_sq_range(rtype1, msq2[inside], rtype2)
+        inside[inside] = (msq1[inside] >= msq1_min) & (msq1_max >= msq1[inside])
+        return inside
     def uniform_sample(self, rtype1, rtype2, nevt, majorant=None):
         """ Uniformly distributed events """
         msq1_lo, msq1_hi = self.mass_sq_range[rtype1]
@@ -178,8 +181,10 @@ class DalitzPhaseSpace(object):
         """ Get a grid within the phase space """
         min1, max1 = self.mass_sq_range[rtype1]
         min2, max2 = self.mass_sq_range[rtype2]
-        lsp1 = np.linspace(min1, max1, size)
-        lsp2 = np.linspace(min2, max2, size)
+        dm1 = (max1 - min1) / size
+        dm2 = (max2 - min2) / size
+        lsp1 = np.linspace(min1+0.5*dm1, max1-0.5*dm1, size)
+        lsp2 = np.linspace(min2+0.5*dm2, max2-0.5*dm2, size)
         grid = np.meshgrid(lsp1, lsp2)
         msq1 = np.reshape(grid[0], size**2)
         msq2 = np.reshape(grid[1], size**2)
