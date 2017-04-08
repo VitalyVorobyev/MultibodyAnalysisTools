@@ -15,18 +15,30 @@ class DalitzModel(DalitzPhaseSpace):
         self.rlist = {'AB' : [], 'AC' : [], 'BC' : []}
         self.rdict = {}
         self.majorant = 0
-    def add_res(self, res, rtype, ampl=1.+1j*.0):
+    def add_res(self, name, prop, rtype, ampl=1.+1j*.0):
         """ Add resonance to model """
-        self.rlist[rtype].append([res, ampl])
+        self.rdict[name] = {'prop' : prop, 'ampl' : ampl, 'type' : rtype}
+        self.rlist[rtype].append(name)
     def add_bw(self, name, mass, width, spin, rtype, ampl=1.+1j*.0):
         """ Add Breit-Wigner resonance """
         momentum = self.momentum_res(mass**2, rtype)
-        self.rdict[name] = {'prop' : BWRes(mass, width, spin, momentum),
-                            'ampl' : ampl}
-        self.rlist[rtype].append(name)
+        self.add_res(name, BWRes(mass, width, spin, momentum), rtype, ampl)
+    def set_mass(self, rname, mass):
+        """ Set mass of a resonance """
+        momentum = self.momentum_res(mass**2, self.rdict[rname]['type'])
+        self.rdict[rname]['prop'].set_mass(mass, momentum)
+    def set_width(self, rname, width):
+        """ Set width of a resonance """
+        self.rdict[rname]['prop'].set_width(width)
+    def set_ampl(self, rname, ampl):
+        """ Set amplitude of a resonance """
+        self.rdict[rname]['ampl'] = ampl * np.exp(1j*np.angle(self.rdict[rname]['ampl']))
+    def set_phase(self, rname, phase):
+        """ Set phase of a resonance """
+        self.rdict[rname]['ampl'] = abs(self.rdict[rname]['ampl']) * np.exp(1j*phase)
     def __call__(self, msq1, msq2, rtype1='AB', rtype2='AC'):
         """ Complex amplitude """
-        mab_sq, mac_sq, mbc_sq = self.unravel_masses(msq1, msq2, rtype1, rtype2)
+        mab_sq, mac_sq, mbc_sq = self.__unravel_masses__(msq1, msq2, rtype1, rtype2)
         result = 0. + 1j*0.
         if len(self.rlist['AB']) != 0:  # D -> R(AB) + C
             cos_hel, mompq, mom_r = self.cos_hel_pq_pr(mab_sq, mac_sq, 'AB', 'AC')
@@ -106,7 +118,8 @@ class DalitzModel(DalitzPhaseSpace):
             else:
                 pos1[acc_mask] = npos1[acc_mask]
             density[acc_mask] = ndensity[acc_mask]
-            msq1.append(list(pos1)), msq2.append(list(pos2))
+            msq1.append(list(pos1))
+            msq2.append(list(pos2))
             naccepted += sum(acc_mask) - rejected
             ntries += batch_size
             iteration += 1
@@ -123,7 +136,7 @@ class DalitzModel(DalitzPhaseSpace):
         dens = self.density(msq1g, msq2g, rtype1, rtype2)
         dens[~mask] = 0
         return [msq1g, msq2g, dens]
-    def unravel_masses(self, msq1, msq2, rtype1, rtype2):
+    def __unravel_masses__(self, msq1, msq2, rtype1, rtype2):
         """ Define mAB, mAC and mBC """
         if rtype1 == 'AB':
             mab_sq = msq1
