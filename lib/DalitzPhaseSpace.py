@@ -10,6 +10,7 @@ class DalitzPhaseSpace(object):
     """ Dalitz phase space for spinless particles """
     def __init__(self, ma, mb, mc, md):
         """ Constructor """
+        self.area = None
         self.mass = np.array([ma, mb, mc, md])
         self.mass_sq = self.mass**2
         self.prod_mass = {
@@ -156,26 +157,32 @@ class DalitzPhaseSpace(object):
         msq1_min, msq1_max = self.mr_sq_range(rtype1, msq2[inside], rtype2)
         inside[inside] = (msq1[inside] >= msq1_min) & (msq1_max >= msq1[inside])
         return inside
-    def uniform_sample(self, rtype1, rtype2, nevt, majorant=None):
+    def uniform_sample(self, rtype1, rtype2, nevt, majorant=None, area=False):
         """ Uniformly distributed events """
         msq1_lo, msq1_hi = self.mass_sq_range[rtype1]
         msq2_lo, msq2_hi = self.mass_sq_range[rtype2]
+        rect_square = (msq1_hi - msq1_lo) * (msq2_hi - msq2_lo)
+        counts = 0
         msq1, msq2 = np.array([]), np.array([])
         if majorant is not None:
             maj = np.array([])
         while len(msq1) < nevt:
             add_msq1 = np.random.uniform(msq1_lo, msq1_hi, min(10**6, 3*nevt))
             add_msq2 = np.random.uniform(msq2_lo, msq2_hi, min(10**6, 3*nevt))
+            counts += len(add_msq2)
             mask = self.inside(add_msq1, add_msq2, rtype1, rtype2)
             msq1 = np.append(msq1, add_msq1[mask])
             msq2 = np.append(msq2, add_msq2[mask])
             if majorant is not None:
                 add_maj = np.random.uniform(0, majorant, min(10**6, 3*nevt))
                 maj = np.append(maj, add_maj[mask])
+        if area:
+            self.area = rect_square * len(msq1) / counts
+            print 'area', self.area
         if majorant is not None:
-            return [msq1[:nevt], msq2[:nevt], maj[:nevt]]
+            return {rtype1 : msq1[:nevt], rtype2 : msq2[:nevt], 'h' : maj[:nevt]}
         else:
-            return [msq1[:nevt], msq2[:nevt]]
+            return {rtype1: msq1[:nevt], rtype2 : msq2[:nevt]}
     def grid(self, rtype1, rtype2, size=500):
         """ Get a grid within the phase space """
         min1, max1 = self.mass_sq_range[rtype1]

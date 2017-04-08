@@ -23,6 +23,10 @@ class BWRes(object):
         """ Complex amplitude """
         return self.prop(mass_sq, momentum) * ang_dist(cos_hel, mompq, self.spin) *\
                barier_factor(self.momentum, momentum, self.spin)
+    def __str__(self):
+        """ to str """
+        return 'RelBW: mass ' + str(np.sqrt(self.prop.mass_sq)) +\
+               ', width ' +  str(self.prop.width.width)
     def set_mass(self, mass, momentum=None):
         """ Change mass """
         self.prop.set_mass(mass, momentum)

@@ -67,21 +67,22 @@ class DalitzModel(DalitzPhaseSpace):
         return amp.real**2 + amp.imag**2
     def assess_majorant(self, ntries=10**6):
         """ Assess majorant with ntries random tries """
-        mab_sq, mbc_sq = self.uniform_sample('AB', 'BC', ntries)
-        self.majorant = 1.5 * max(self.density(mab_sq, mbc_sq, 'AB', 'BC'))
+        usmpl = self.uniform_sample('AB', 'BC', ntries)
+        self.majorant = 1.5 * max(self.density(usmpl['AB'], usmpl['BC'], 'AB', 'BC'))
         return self.majorant
-    def sample(self, nevt, rtype1='AB', rtype2='AC'):
+    def sample(self, nevt, rtype1='AB', rtype2='AC', silent=False):
         """ Get sample with Neuman method """
         if self.majorant == 0:
             self.majorant = self.assess_majorant()
         msq1, msq2 = np.array([]), np.array([])
         while len(msq1) < nevt:
-            new_m1sq, new_m2sq, height = self.uniform_sample(rtype1, rtype2, nevt, self.majorant)
-            mask = self.density(new_m1sq, new_m2sq, rtype1, rtype2) > height
-            msq1 = np.append(msq1, new_m1sq[mask])
-            msq2 = np.append(msq2, new_m2sq[mask])
-            print len(msq1), 'events generated'
-        return msq1[:nevt], msq2[:nevt]
+            usmpl = self.uniform_sample(rtype1, rtype2, nevt, self.majorant)
+            mask = self.density(usmpl[rtype1], usmpl[rtype2], rtype1, rtype2) > usmpl['h']
+            msq1 = np.append(msq1, usmpl[rtype1][mask])
+            msq2 = np.append(msq2, usmpl[rtype2][mask])
+            if not silent:
+                print len(msq1), 'events generated'
+        return {rtype1 : msq1[:nevt], rtype2 : msq2[:nevt]}
     def mcmc_sample(self, nevt, rtype1='AB', rtype2='AC', alpha=0.1, batch=16):
         """ Metropolis-Hastings sampling """
         msq1_lo, msq1_hi = self.mass_sq_range[rtype1]
@@ -124,7 +125,7 @@ class DalitzModel(DalitzPhaseSpace):
             ntries += batch_size
             iteration += 1
         print 'Acceptance rate = {}'.format(float(naccepted) / ntries)
-        return [np.array(msq1).flatten(), np.array(msq2).flatten()]
+        return {rtype1 : np.array(msq1).flatten(), rtype2 : np.array(msq2).flatten()}
     def grid_dens(self, rtype1, rtype2, size=500):
         """ Density values in grid nodes """
         min1, max1 = self.mass_sq_range[rtype1]
@@ -136,6 +137,13 @@ class DalitzModel(DalitzPhaseSpace):
         dens = self.density(msq1g, msq2g, rtype1, rtype2)
         dens[~mask] = 0
         return [msq1g, msq2g, dens]
+    def integrate(self, nevt=10**6):
+        """ MC integral """
+        if self.area is None:
+            data = self.uniform_sample('AB', 'BC', nevt, None, True)
+        else:
+            data = self.uniform_sample('AB', 'BC', nevt)
+        return self.density(data['AB'], data['BC'], 'AB', 'BC').sum() / nevt * self.area
     def __unravel_masses__(self, msq1, msq2, rtype1, rtype2):
         """ Define mAB, mAC and mBC """
         if rtype1 == 'AB':
