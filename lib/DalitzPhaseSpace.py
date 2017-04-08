@@ -5,7 +5,6 @@ __email__ = "vit.vorobiev@gmail.com"
 __date__ = "April 2017"
 
 import numpy as np
-import itertools
 
 class DalitzPhaseSpace(object):
     """ Dalitz phase space for spinless particles """
