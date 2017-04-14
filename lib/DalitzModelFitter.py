@@ -10,6 +10,8 @@ from ROOT import TVirtualFitter
 
 from scipy.special import gammaln
 
+from DalitzPhaseSpace import unpack_data
+
 def log_poisson(n, mu):
     """ log Poisson distribution """
     return -2. * (n + np.log(mu) - mu - gammaln(n+1))
@@ -18,7 +20,6 @@ class MLFit(object):
     """ Perform unbinned max likelihood fit """
     model, data = None, None
     pars = []
-    rtype1, rtype2, msq1, msq2 = [None] * 4
     def __init__(self, model, params, data, makefit=True):
         """ Constructor """
         MLFit.model = model
@@ -30,7 +31,7 @@ class MLFit(object):
             for param, info in parameters.iteritems():
                 # info = [val0, err0, lo, hi]
                 pname = "_".join([resonance, param])
-                MLFit.pars.append([pname, resonance, param, info])
+                MLFit.pars.append([pname] + info)
                 self.npars += 1
         self.results = {}  # Get fit results and update parameters
         if makefit:
@@ -39,8 +40,7 @@ class MLFit(object):
         """ Run MIGRAD """
         fitter = TVirtualFitter.Fitter(0, self.npars)
         for parn, info in enumerate(MLFit.pars):
-            pname, inf = info[0], info[-1]
-            val0, err0, loval, hival = inf
+            pname, val0, err0, loval, hival = info
             fitter.SetParameter(parn, pname, val0, err0, loval, hival)
         fitter.SetFCN(MLFit.fcn)
         arglist = array('d', 10*[0])  # Auxiliary array for MINUIT parameters
@@ -50,8 +50,8 @@ class MLFit(object):
         arglist[1] = 0.01  # tolerance
         fitter.ExecuteCommand('MIGRAD', arglist, 2)
         # Thanks to Anton Poluektov for that part
-        for parn, par_info in enumerate(MLFit.pars):
-            self.results[par_info[0]] = {
+        for parn, info in enumerate(MLFit.pars):
+            self.results[info[0]] = {
                 'val' : fitter.GetParameter(parn),
                 'err' : fitter.GetParError(parn)
             }
@@ -59,21 +59,20 @@ class MLFit(object):
         maxlh, edm, errdef = [array("d", [0.])] * 3
         nvpar, nparx = [array("i", [0])] * 2
         fitstatus = fitter.GetStats(maxlh, edm, errdef, nvpar, nparx)
-
         # return fit results
         self.results["loglh"] = maxlh[0]
         self.results["status"] = fitstatus
         return self.results
     @staticmethod
     def fcn(npar, grad, fval, parv, iflag):
-        """ The FCN """
-        rtype1, rtype2 = list(MLFit.data)
-        msq1, msq2 = MLFit.data[rtype1], MLFit.data[rtype2]
+        """ The FCN. We have to make this method static because
+            TVirtualFitter doesn't line 'self' as first argument... """
+        msq1, msq2, rtype1, rtype2 = unpack_data(MLFit.data)
         norm = MLFit.model.integrate(100*len(msq1))
         for par, val in zip(MLFit.pars, parv):
             MLFit.set_param(par[1], par[2], val)
-        fval[0] = -2. * np.log(MLFit.model.density(msq1, msq2, rtype1, rtype2)).sum()
-        fval[0] += 2. * np.log(norm) * len(msq1)
+        fval[0] = -2.*np.log(MLFit.model.density(msq1, msq2, rtype1, rtype2)).sum()
+        fval[0] += 2.*np.log(norm) * len(msq1)
         print 'llh {}, norm {}'.format(fval[0], norm)
     @staticmethod
     def set_param(rname, par, val):

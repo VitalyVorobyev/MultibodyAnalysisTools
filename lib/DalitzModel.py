@@ -59,8 +59,9 @@ class DalitzModel(DalitzPhaseSpace):
                 if isinstance(res, BWRes):
                     result += ampl*res(mbc_sq, mom_r, cos_hel, mompq)
         return result
-    def density(self, msq1, msq2, rtype1='AB', rtpe2='AC'):
+    def density(self, data):
         """ Probability density """
+        msq1, msq2, rtype1, rtpe2 = unpack_data(data)
         amp = self(msq1, msq2, rtype1, rtpe2)
         if isinstance(amp, (np.ndarray, np.generic)):
             amp[~self.inside(msq1, msq2, rtype1, rtpe2)] = 0
@@ -77,7 +78,7 @@ class DalitzModel(DalitzPhaseSpace):
         msq1, msq2 = np.array([]), np.array([])
         while len(msq1) < nevt:
             usmpl = self.uniform_sample(rtype1, rtype2, nevt, self.majorant)
-            mask = self.density(usmpl[rtype1], usmpl[rtype2], rtype1, rtype2) > usmpl['h']
+            mask = self.density(usmpl) > usmpl['h']
             msq1 = np.append(msq1, usmpl[rtype1][mask])
             msq2 = np.append(msq2, usmpl[rtype2][mask])
             if not silent:
@@ -91,10 +92,10 @@ class DalitzModel(DalitzPhaseSpace):
         sigma2 = alpha * (msq2_hi - msq2_lo)
         print 's1 = {}, s2 = {}'.format(sigma1, sigma2)
         pos1, pos2 = self.grid(rtype1, rtype2, batch)
-        pos1, pos2 = pos1[1:-1], pos2[1:-1]
-        batch_size = len(pos1)
+        data = {rtype1 : pos1, rtype2: pos2}
+        batch_size = len(data[rtype1])
         msq1, msq2 = [], []
-        density = self.density(pos1, pos2, rtype1, rtype2)
+        density = self.density(data)
         iteration = 1
         ntries, naccepted = 0, 0
         while (len(msq1)*batch_size < nevt) & (iteration < 10**6):

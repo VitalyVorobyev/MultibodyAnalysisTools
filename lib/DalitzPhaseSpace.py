@@ -5,6 +5,10 @@ __email__ = "vit.vorobiev@gmail.com"
 __date__ = "April 2017"
 
 import numpy as np
+def unpack_data(data):
+    """ dict to lists and types """
+    rtypes = list(data)
+    return [data[rtypes[0]], data[rtypes[1]], rtypes[0], rtypes[1]]
 
 class DalitzPhaseSpace(object):
     """ Dalitz phase space for spinless particles """
@@ -12,6 +16,7 @@ class DalitzPhaseSpace(object):
         """ Constructor """
         self.area = None
         self.mass = np.array([ma, mb, mc, md])
+        # Lookups for several useful values
         self.mass_sq = self.mass**2
         self.prod_mass = {
             'AB' : self.mass[[0, 1]],
@@ -196,6 +201,7 @@ class DalitzPhaseSpace(object):
         msq2 = np.reshape(grid[1], size**2)
         mask = self.inside(msq1, msq2, rtype1, rtype2)
         return [msq1[mask], msq2[mask]]
+
 def limited_mass_linspace(mmin, mmax, ndots, phsp, rtype):
     """ Set phase space limits if necessary """
     return np.linspace(max(phsp.mass_range[rtype][0], mmin),
