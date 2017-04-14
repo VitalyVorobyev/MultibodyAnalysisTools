@@ -36,9 +36,9 @@ class DalitzModel(DalitzPhaseSpace):
     def set_phase(self, rname, phase):
         """ Set phase of a resonance """
         self.rdict[rname]['ampl'] = abs(self.rdict[rname]['ampl']) * np.exp(1j*phase)
-    def __call__(self, msq1, msq2, rtype1='AB', rtype2='AC'):
+    def __call__(self, data):
         """ Complex amplitude """
-        mab_sq, mac_sq, mbc_sq = self.__unravel_masses__(msq1, msq2, rtype1, rtype2)
+        mab_sq, mac_sq, mbc_sq = self.__unravel_masses__(data)
         result = 0. + 1j*0.
         if len(self.rlist['AB']) != 0:  # D -> R(AB) + C
             cos_hel, mompq, mom_r = self.cos_hel_pq_pr(mab_sq, mac_sq, 'AB', 'AC')
@@ -61,29 +61,32 @@ class DalitzModel(DalitzPhaseSpace):
         return result
     def density(self, data):
         """ Probability density """
-        msq1, msq2, rtype1, rtpe2 = unpack_data(data)
-        amp = self(msq1, msq2, rtype1, rtpe2)
+        amp = self(data)
         if isinstance(amp, (np.ndarray, np.generic)):
-            amp[~self.inside(msq1, msq2, rtype1, rtpe2)] = 0
+            amp[~self.inside(data)] = 0
         return amp.real**2 + amp.imag**2
     def assess_majorant(self, ntries=10**6):
         """ Assess majorant with ntries random tries """
         usmpl = self.uniform_sample('AB', 'BC', ntries)
-        self.majorant = 1.5 * max(self.density(usmpl['AB'], usmpl['BC'], 'AB', 'BC'))
+        self.majorant = 1.5 * max(self.density(usmpl))
         return self.majorant
     def sample(self, nevt, rtype1='AB', rtype2='AC', silent=False):
         """ Get sample with Neuman method """
         if self.majorant == 0:
             self.majorant = self.assess_majorant()
-        msq1, msq2 = np.array([]), np.array([])
-        while len(msq1) < nevt:
-            usmpl = self.uniform_sample(rtype1, rtype2, nevt, self.majorant)
-            mask = self.density(usmpl) > usmpl['h']
-            msq1 = np.append(msq1, usmpl[rtype1][mask])
-            msq2 = np.append(msq2, usmpl[rtype2][mask])
+        smpl = {rtype1: np.array([]), rtype2 : np.array([])}
+        ngen, ntry = 0, 0
+        while ngen < nevt:
+            usmpl, rndm = self.uniform_sample(rtype1, rtype2, nevt, self.majorant)
+            mask = self.density(usmpl) > rndm
+            smpl[rtype1] = np.append(smpl[rtype1], usmpl[rtype1][mask])
+            smpl[rtype2] = np.append(smpl[rtype2], usmpl[rtype2][mask])
+            ngen += sum(mask)
+            ntry += nevt
             if not silent:
-                print len(msq1), 'events generated'
-        return {rtype1 : msq1[:nevt], rtype2 : msq2[:nevt]}
+                print len(ngen), 'events generated'
+        print 'Efficiency: {}'.format(float(ngen) / ntry)
+        return smpl
     def mcmc_sample(self, nevt, rtype1='AB', rtype2='AC', alpha=0.1, batch=16):
         """ Metropolis-Hastings sampling """
         msq1_lo, msq1_hi = self.mass_sq_range[rtype1]
@@ -107,13 +110,14 @@ class DalitzModel(DalitzPhaseSpace):
             else:
                 npos1, npos2 = pos1 + np.random.normal(0, sigma1, batch_size), pos2
             # remove positions outside the phase space
-            inside_mask = self.inside(npos1, npos2, rtype1, rtype2)
+            data = {rtype1 : npos1, rtype2 : npos2}
+            inside_mask = self.inside(data)
             rejected = sum(~inside_mask)
             if iteration % 2:
-                npos2[~inside_mask] = pos2[~inside_mask]
+                data[rtype2][~inside_mask] = pos2[~inside_mask]
             else:
-                npos1[~inside_mask] = pos1[~inside_mask]
-            ndensity = self.density(npos1, npos2, rtype1, rtype2)
+                data[rtype1][~inside_mask] = pos1[~inside_mask]
+            ndensity = self.density(data)
             acc_mask = ndensity / density > np.random.uniform(0, 1, batch_size)
             if iteration % 2:
                 pos2[acc_mask] = npos2[acc_mask]
@@ -134,8 +138,9 @@ class DalitzModel(DalitzPhaseSpace):
         lsp1 = np.linspace(min1, max1, size)
         lsp2 = np.linspace(min2, max2, size)
         msq1g, msq2g = np.meshgrid(lsp1, lsp2)
-        mask = self.inside(msq1g, msq2g, rtype1, rtype2)
-        dens = self.density(msq1g, msq2g, rtype1, rtype2)
+        data = {rtype1 : msq1g, rtype2 : msq2g}
+        mask = self.inside(data)
+        dens = self.density(data)
         dens[~mask] = 0
         return [msq1g, msq2g, dens]
     def integrate(self, nevt=10**6):
@@ -144,9 +149,10 @@ class DalitzModel(DalitzPhaseSpace):
             data = self.uniform_sample('AB', 'BC', nevt, None, True)
         else:
             data = self.uniform_sample('AB', 'BC', nevt)
-        return self.density(data['AB'], data['BC'], 'AB', 'BC').sum() / nevt * self.area
-    def __unravel_masses__(self, msq1, msq2, rtype1, rtype2):
+        return self.density(data).sum() / nevt * self.area
+    def __unravel_masses__(self, data):
         """ Define mAB, mAC and mBC """
+        msq1, msq2, rtype1, rtype2 = unpack_data(data)
         if rtype1 == 'AB':
             mab_sq = msq1
             if rtype2 == 'AC':

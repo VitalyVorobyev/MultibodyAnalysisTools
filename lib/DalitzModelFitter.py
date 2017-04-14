@@ -19,19 +19,20 @@ def log_poisson(n, mu):
 class MLFit(object):
     """ Perform unbinned max likelihood fit """
     model, data = None, None
+    nevt = 0
     pars = []
     def __init__(self, model, params, data, makefit=True):
         """ Constructor """
         MLFit.model = model
         MLFit.data = data
+        MLFit.nevt = len(data[list(data)[0]])
         # TVirtualFitter.SetDefaultFitter('Minuit2')
         self.npars = 0
         MLFit.pars = []
         for resonance, parameters in params.iteritems():
             for param, info in parameters.iteritems():
-                # info = [val0, err0, lo, hi]
                 pname = "_".join([resonance, param])
-                MLFit.pars.append([pname] + info)
+                MLFit.pars.append([pname, resonance, param] + info)
                 self.npars += 1
         self.results = {}  # Get fit results and update parameters
         if makefit:
@@ -40,7 +41,7 @@ class MLFit(object):
         """ Run MIGRAD """
         fitter = TVirtualFitter.Fitter(0, self.npars)
         for parn, info in enumerate(MLFit.pars):
-            pname, val0, err0, loval, hival = info
+            pname, _, _, val0, err0, loval, hival = info
             fitter.SetParameter(parn, pname, val0, err0, loval, hival)
         fitter.SetFCN(MLFit.fcn)
         arglist = array('d', 10*[0])  # Auxiliary array for MINUIT parameters
@@ -66,13 +67,11 @@ class MLFit(object):
     @staticmethod
     def fcn(npar, grad, fval, parv, iflag):
         """ The FCN. We have to make this method static because
-            TVirtualFitter doesn't line 'self' as first argument... """
-        msq1, msq2, rtype1, rtype2 = unpack_data(MLFit.data)
-        norm = MLFit.model.integrate(100*len(msq1))
+            TVirtualFitter doesn't line 'self' as the first argument... """
+        norm = MLFit.model.integrate(10000*MLFit.nevt)
         for par, val in zip(MLFit.pars, parv):
             MLFit.set_param(par[1], par[2], val)
-        fval[0] = -2.*np.log(MLFit.model.density(msq1, msq2, rtype1, rtype2)).sum()
-        fval[0] += 2.*np.log(norm) * len(msq1)
+        fval[0] = -2.*np.log(MLFit.model.density(MLFit.data)).sum() + 2.*norm*MLFit.nevt
         print 'llh {}, norm {}'.format(fval[0], norm)
     @staticmethod
     def set_param(rname, par, val):

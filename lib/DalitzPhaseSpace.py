@@ -155,8 +155,9 @@ class DalitzPhaseSpace(object):
     def third_mass_sq(self, mrsq1, mrsq2):
         """ The third Dalitz variable """
         return -(mrsq1 + mrsq2) + sum(self.mass_sq)
-    def inside(self, msq1, msq2, rtype1, rtype2):
+    def inside(self, data):
         """ If point inside physical phase space region """
+        msq1, msq2, rtype1, rtype2 = unpack_data(data)
         inside = (msq2 > self.mass_sq_range[rtype2][0]) &\
                  (msq2 < self.mass_sq_range[rtype2][1])
         msq1_min, msq1_max = self.mr_sq_range(rtype1, msq2[inside], rtype2)
@@ -175,7 +176,7 @@ class DalitzPhaseSpace(object):
             add_msq1 = np.random.uniform(msq1_lo, msq1_hi, min(10**6, 3*nevt))
             add_msq2 = np.random.uniform(msq2_lo, msq2_hi, min(10**6, 3*nevt))
             counts += len(add_msq2)
-            mask = self.inside(add_msq1, add_msq2, rtype1, rtype2)
+            mask = self.inside({rtype1 : add_msq1, rtype2 : add_msq2})
             msq1 = np.append(msq1, add_msq1[mask])
             msq2 = np.append(msq2, add_msq2[mask])
             if majorant is not None:
@@ -184,10 +185,11 @@ class DalitzPhaseSpace(object):
         if area:
             self.area = rect_square * len(msq1) / counts
             print 'area', self.area
+        data = {rtype1 : msq1[:nevt], rtype2 : msq2[:nevt]}
         if majorant is not None:
-            return {rtype1 : msq1[:nevt], rtype2 : msq2[:nevt], 'h' : maj[:nevt]}
+            return [data, maj[:nevt]]
         else:
-            return {rtype1: msq1[:nevt], rtype2 : msq2[:nevt]}
+            return data
     def grid(self, rtype1, rtype2, size=500):
         """ Get a grid within the phase space """
         min1, max1 = self.mass_sq_range[rtype1]
@@ -199,7 +201,7 @@ class DalitzPhaseSpace(object):
         grid = np.meshgrid(lsp1, lsp2)
         msq1 = np.reshape(grid[0], size**2)
         msq2 = np.reshape(grid[1], size**2)
-        mask = self.inside(msq1, msq2, rtype1, rtype2)
+        mask = self.inside({rtype1 : msq1, rtype2 : msq2})
         return [msq1[mask], msq2[mask]]
 
 def limited_mass_linspace(mmin, mmax, ndots, phsp, rtype):
