@@ -208,3 +208,13 @@ def limited_mass_linspace(mmin, mmax, ndots, phsp, rtype):
     """ Set phase space limits if necessary """
     return np.linspace(max(phsp.mass_range[rtype][0], mmin),
                        min(mmax, phsp.mass_range[rtype][1]), ndots+1)[:-1]
+
+def phsp_edge(phsp, rtype1, rtype2):
+    """ Calculate phase space edges """
+    mr1_min, mr1_max = phsp.mass_sq_range[rtype1]
+    mr1_space = np.linspace(mr1_min, mr1_max, 1000)
+    mr2_mins, mr2_maxs = phsp.mr_sq_range(rtype2, mr1_space, rtype1)
+    mr1 = np.concatenate([mr1_space, mr1_space[::-1]])
+    mr2 = np.concatenate([mr2_mins, mr2_maxs[::-1]])
+    return [mr1, mr2]
+    
