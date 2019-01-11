@@ -34,12 +34,12 @@ class MLFit(object):
         MLFit.model = model
         MLFit.data = data
         MLFit.nevt = len(data[list(data)[0]])
-        # TVirtualFitter.SetDefaultFitter('Minuit2')
+        TVirtualFitter.SetDefaultFitter('Minuit')
         self.npars = 0
         MLFit.pars = []
         for resonance, parameters in params.iteritems():
             for param, info in parameters.iteritems():
-                pname = "_".join([resonance, param])
+                pname = '_'.join([resonance, param])
                 MLFit.pars.append([pname, resonance, param] + info)
                 self.npars += 1
         self.results = {}  # Get fit results and update parameters
@@ -74,22 +74,15 @@ class MLFit(object):
         self.results['cov'] = fitter.GetCovarianceMatrix()
         print 'llh {}, status {}, edm {}, errdef {}, nvpar {}, nparx {}'.format(
             maxlh[0], fitstatus, edm[0], errdef[0], nvpar[0], nparx[0])
-        # print 'err 0 0 {}'.format(fitter.GetCovarianceMatrixElement(0, 0))
-        # print 'err 0   {}'.format(fitter.GetCovarianceMatrix()[0])
-        # print 'err 0 1 {}'.format(fitter.GetCovarianceMatrixElement(0, 1))
-        # print 'err 1   {}'.format(fitter.GetCovarianceMatrix()[1])
-        # print 'err 1 0 {}'.format(fitter.GetCovarianceMatrixElement(1, 0))
-        # print 'err 2   {}'.format(fitter.GetCovarianceMatrix()[2])
-        # print 'err 1 1 {}'.format(fitter.GetCovarianceMatrixElement(1, 1))
-        # print 'err 3   {}'.format(fitter.GetCovarianceMatrix()[3])
         return self.results
     @staticmethod
     def fcn(npar, grad, fval, parv, iflag):
         """ The FCN. We have to make this method static because
             TVirtualFitter doesn't line 'self' as the first argument... """
-        norm = MLFit.model.integrate(100*MLFit.nevt)
+        norm = MLFit.model.integrate(max(10**6, 100*MLFit.nevt))
         for par, val in zip(MLFit.pars, parv):
             MLFit.set_param(par[1], par[2], val)
+            print '  par {} : {}'.format(par[0], val)
         fval[0] = -2.*np.log(MLFit.model.density(MLFit.data)).sum() +\
                    2.*np.log(norm)*MLFit.nevt
         print 'llh {}, norm {}'.format(fval[0], norm)

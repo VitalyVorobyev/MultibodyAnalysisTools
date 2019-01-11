@@ -5,10 +5,13 @@ __email__ = "vit.vorobiev@gmail.com"
 __date__ = "April 2017"
 
 import numpy as np
+import pandas as pd
+from Rotator import RandomRotation
+
 def unpack_data(data):
     """ dict to lists and types """
     rtypes = list(data)
-    return [data[rtypes[0]], data[rtypes[1]], rtypes[0], rtypes[1]]
+    return [np.array(data[rtypes[0]]), np.array(data[rtypes[1]]), rtypes[0], rtypes[1]]
 
 class DalitzPhaseSpace(object):
     """ Dalitz phase space for spinless particles """
@@ -18,6 +21,7 @@ class DalitzPhaseSpace(object):
         self.mass = np.array([ma, mb, mc, md])
         # Lookups for several useful values
         self.mass_sq = self.mass**2
+        self.msqdict = {'A' : ma**2, 'B' : mb**2, 'C' : mc**2}
         self.prod_mass = {
             'AB' : self.mass[[0, 1]],
             'AC' : self.mass[[0, 2]],
@@ -152,9 +156,11 @@ class DalitzPhaseSpace(object):
         cos_hel = np.divide(mr2_rng[0] + mr2_rng[1] - 2.*mr2_sq,\
                             mr2_rng[1] - mr2_rng[0]+0.0000001)
         return cos_hel, mom_c * mom_p, mom_r
+
     def third_mass_sq(self, mrsq1, mrsq2):
         """ The third Dalitz variable """
         return -(mrsq1 + mrsq2) + sum(self.mass_sq)
+
     def inside(self, data):
         """ If point inside physical phase space region """
         msq1, msq2, rtype1, rtype2 = unpack_data(data)
@@ -168,20 +174,22 @@ class DalitzPhaseSpace(object):
         msq1_lo, msq1_hi = self.mass_sq_range[rtype1]
         msq2_lo, msq2_hi = self.mass_sq_range[rtype2]
         rect_square = (msq1_hi - msq1_lo) * (msq2_hi - msq2_lo)
-        counts = 0
-        msq1, msq2 = np.array([]), np.array([])
+        counts, msq1, msq2 = 0, [], []
         if majorant is not None:
-            maj = np.array([])
+            maj = []
         while len(msq1) < nevt:
-            add_msq1 = np.random.uniform(msq1_lo, msq1_hi, min(10**6, 3*nevt))
-            add_msq2 = np.random.uniform(msq2_lo, msq2_hi, min(10**6, 3*nevt))
-            counts += len(add_msq2)
-            mask = self.inside({rtype1 : add_msq1, rtype2 : add_msq2})
-            msq1 = np.append(msq1, add_msq1[mask])
-            msq2 = np.append(msq2, add_msq2[mask])
+            print(len(msq1))
+            new_msq1 = np.random.uniform(msq1_lo, msq1_hi, min(10**6, 3*nevt))
+            new_msq2 = np.random.uniform(msq2_lo, msq2_hi, min(10**6, 3*nevt))
+            print(len(new_msq2))
+            counts += len(new_msq2)
+            mask = self.inside({rtype1 : new_msq1, rtype2 : new_msq2})
+            print(mask)
+            msq1 = msq1 + new_msq1[mask].tolist()
+            msq2 = msq2 + new_msq2[mask].tolist()
             if majorant is not None:
                 add_maj = np.random.uniform(0, majorant, min(10**6, 3*nevt))
-                maj = np.append(maj, add_maj[mask])
+                maj = maj + add_maj[mask].tolist()
         if area:
             self.area = rect_square * len(msq1) / counts
             print 'area', self.area
@@ -204,6 +212,50 @@ class DalitzPhaseSpace(object):
         mask = self.inside({rtype1 : msq1, rtype2 : msq2})
         return [msq1[mask], msq2[mask]]
 
+    def thirdCombination(self, rt1, rt2):
+        """ """
+        return list(set(['AB', 'AC', 'BC']) - set([rt1, rt2]))[0]
+
+    def dalitzToLotentz(self, data):
+        """ """
+        msq1, msq2, rt1, rt2 = unpack_data(data)
+        df = pd.DataFrame(data)
+        df[self.thirdCombination(rt1, rt2)] = self.third_mass_sq(msq1, msq2)
+        print(df.head())
+        # rtypes = list(data)
+        nevt = len(msq1)
+        chA = list(set(rt1) & set(rt2))[0]
+        chB = list(set(rt1) - set(chA))[0]
+        chC = list(set(rt2) - set(chA))[0]
+        print(chA, chB, chC)
+        msq1 = np.array(msq1)
+        msq2 = np.array(msq2)
+        print(type(msq1))
+        eA = (msq1 + msq2 - self.msqdict[chB] - self.msqdict[chC]) / (2. * self.mass_d())
+        eB = (self.mass_sq[-1] + self.msqdict[chB] - msq2) / (2. * self.mass_d())
+        eC = (self.mass_sq[-1] + self.msqdict[chC] - msq1) / (2. * self.mass_d())
+        pzA = np.sqrt(eA**2 - self.msqdict[chA])
+        pzB = (self.msqdict[chB] + self.msqdict[chA] + 2.*eA*eB - msq1) / (2.*pzA)
+        pzC = (self.msqdict[chC] + self.msqdict[chA] + 2.*eA*eC - msq2) / (2.*pzA)
+        pxB = np.sqrt(eB**2 - pzB**2 - self.msqdict[chB])
+        pxC = -pxB
+        lvA, lvB, lvC = [], [], []
+        for idx in range(nevt):
+            moms = RandomRotation(np.array([
+                [0., 0., pzA[idx]],
+                [pxB[idx], 0., pzB[idx]],
+                [pxC[idx], 0., pzC[idx]]
+            ]))
+            lvA.append([eA[idx]] + moms[0])
+            lvB.append([eB[idx]] + moms[1])
+            lvC.append([eC[idx]] + moms[2])
+        return pd.DataFrame.from_dict({
+            rt1 : msq1, rt2 : msq2,
+            'lv{}'.format(chA) : lvA,
+            'lv{}'.format(chB) : lvB,
+            'lv{}'.format(chC) : lvC
+            })
+
 def limited_mass_linspace(mmin, mmax, ndots, phsp, rtype):
     """ Set phase space limits if necessary """
     return np.linspace(max(phsp.mass_range[rtype][0], mmin),
@@ -217,4 +269,18 @@ def phsp_edge(phsp, rtype1, rtype2):
     mr1 = np.concatenate([mr1_space, mr1_space[::-1]])
     mr2 = np.concatenate([mr2_mins, mr2_maxs[::-1]])
     return [mr1, mr2]
-    
+
+def main():
+    """ Unit test """
+    dphsp = DalitzPhaseSpace(0.51, 0.135, 0.135, 1.865)
+    data = dphsp.uniform_sample('AB', 'AC', 1000)
+    # import matplotlib.pyplot as plt
+    # from PlotUtility import plot_ddist
+    # msq1, msq2, rtype1, rtype2 = unpack_data(data)
+    # plot_ddist(msq1, msq2)
+    # plt.show()
+    data = dphsp.dalitzToLotentz(data)
+    print(data.head())
+
+if __name__ == '__main__':
+    main()

@@ -48,3 +48,4 @@ def projections(mab_sq, mac_sq, mbc_sq):
     ax2.hist(np.sqrt(mac_sq), bins=100, normed=True, edgecolor = "none", color=['steelblue'])
     ax3.hist(np.sqrt(mbc_sq), bins=100, normed=True,edgecolor = "none", color=['steelblue'])
     return fig
+
