@@ -29,7 +29,8 @@ def plot_density_countours(model, rtype1='AB', rtype2='BC', num=None):
     msq1g, msq2g, dens = model.grid_dens(rtype1, rtype2, 250)
     fig = plt.figure(num=num)
     levels = np.linspace(0, max(dens.flatten()), 25)
-    cntr = plt.contourf(msq1g, msq2g, dens, cmap=plt.cm.PuBu, levels=levels)
+    # cntr = plt.contourf(msq1g, msq2g, dens, cmap=plt.cm.PuBu, levels=levels)
+    cntr = plt.contourf(msq1g, msq2g, dens, levels=levels)
     plt.colorbar(cntr)
     return fig
 
@@ -37,7 +38,8 @@ def plot_ddist(mab, mbc, bins=200, num=None):
     """ Scatter plot of Dalitz distribution """
     fig = plt.figure(num=num, figsize=(8,6))
     ax = fig.add_subplot(111)
-    hist = ax.hist2d(mab, mbc, bins=bins, cmap=plt.cm.PuBu)
+    # hist = ax.hist2d(mab, mbc, bins=bins, cmap=plt.cm.PuBu)
+    hist = ax.hist2d(mab, mbc, bins=bins)
     fig.colorbar(hist[3], ax=ax, pad=0.02)
     return fig
 
@@ -46,6 +48,13 @@ def projections(mab_sq, mac_sq, mbc_sq):
     fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 3))
     ax1.hist(np.sqrt(mab_sq), bins=100, normed=True, edgecolor = "none", color=['steelblue'])
     ax2.hist(np.sqrt(mac_sq), bins=100, normed=True, edgecolor = "none", color=['steelblue'])
-    ax3.hist(np.sqrt(mbc_sq), bins=100, normed=True,edgecolor = "none", color=['steelblue'])
+    ax3.hist(np.sqrt(mbc_sq), bins=100, normed=True, edgecolor = "none", color=['steelblue'])
     return fig
 
+def effPlot(eff, x, y, num=None):
+    """ Dalitz plot efficiency plot """
+    fig = plt.figure(num=num, figsize=(8, 8))
+    ax = fig.add_subplot(111, title='Efficiency plot', aspect='equal')
+    X, Y = np.meshgrid(x, y)
+    ax.pcolormesh(X, Y, eff)
+    return fig
