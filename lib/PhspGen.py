@@ -11,6 +11,7 @@ class PhspGen(DalitzPhaseSpace):
 
     def __call__(self, rt1, rt2, nevt, full=True, majorant=None, area=False):
         """ Uniformly distributed events """
+        # batch size
         ngen = min(10**6, 3*nevt)
         msq1_lo, msq1_hi = self.mass_sq_range[rt1]
         msq2_lo, msq2_hi = self.mass_sq_range[rt2]

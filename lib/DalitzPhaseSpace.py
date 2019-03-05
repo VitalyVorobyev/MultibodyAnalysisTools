@@ -7,7 +7,7 @@ __date__ = "January 11, 2019"
 import numpy as np
 
 class DalitzPhaseSpace(object):
-    """ Dalitz phase space for spinless particles """
+    """ Dalitz phase space """
     def __init__(self, ma, mb, mc, md):
         """ Constructor """
         mass = np.array([ma, mb, mc, md])
@@ -179,6 +179,7 @@ class DalitzPhaseSpace(object):
     def thirdRt(self, rt1, rt2):
         """ Finds third combination """
         return list(set(['AB', 'AC', 'BC']) - set([rt1, rt2]))[0]
+    __repr__ = __str__
 
 def limited_mass_linspace(mmin, mmax, ndots, phsp, rt):
     """ Set phase space limits if necessary """
