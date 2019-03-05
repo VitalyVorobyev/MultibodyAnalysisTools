@@ -17,7 +17,11 @@ class DalitzModel(DalitzPhaseSpace):
         self.rdict = {}
 
     def add_res(self, name, prop, rtype, ampl=1.+1j*.0):
-        """ Add resonance to model """
+        """ Add resonance to model
+            Args:
+             - prop : propagator
+             - ampl : complex amplitude
+        """
         self.rdict[name] = {'prop' : prop, 'ampl' : ampl, 'type' : rtype}
         self.rlist[rtype].append(name)
 
@@ -78,14 +82,15 @@ class DalitzModel(DalitzPhaseSpace):
             amp[~self.inside(data)] = 0
         return amp.real**2 + amp.imag**2
 
-    def grid_dens(self, rtype1, rtype2, size=500):
+    def grid_dens(self, rt1, rt2, size=500):
         """ Density values in grid nodes """
-        min1, max1 = self.mass_sq_range[rtype1]
-        min2, max2 = self.mass_sq_range[rtype2]
+        min1, max1 = self.mass_sq_range[rt1]
+        min2, max2 = self.mass_sq_range[rt2]
         lsp1 = np.linspace(min1, max1, size)
         lsp2 = np.linspace(min2, max2, size)
         msq1g, msq2g = np.meshgrid(lsp1, lsp2)
-        data = {rtype1 : msq1g, rtype2 : msq2g}
+        data = np.empty((len(msq1g), len(msq2g)), [(rt1, np.float), (rt2, np.float)])
+        data[rt1], data[rt2] = msq1g, msq2g
         mask = self.inside(data)
         dens = self.density(data)
         dens[~mask] = 0
