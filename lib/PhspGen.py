@@ -3,18 +3,19 @@
 import numpy as np
 from DalitzPhaseSpace import DalitzPhaseSpace
 
-class PhspGen(DalitzPhaseSpace):
+class PhspGen(object):
     """ Phase space generator for three-body decays """
-    def __init__(self, ma, mb, mc, md):
+    def __init__(self, phsp):
         """ Constructor """
-        super(PhspGen, self).__init__(ma, mb, mc, md)
+        self.phsp = phsp
+        super(PhspGen, self).__init__(phsp.m['A'], phsp.m['B'], phsp.m['C'], phsp.m['M'])
 
     def __call__(self, rt1, rt2, nevt, full=True, majorant=None, area=False):
         """ Uniformly distributed events """
         # batch size
         ngen = min(10**6, 3*nevt)
-        msq1_lo, msq1_hi = self.mass_sq_range[rt1]
-        msq2_lo, msq2_hi = self.mass_sq_range[rt2]
+        msq1_lo, msq1_hi = self.phsp.mass_sq_range[rt1]
+        msq2_lo, msq2_hi = self.phsp.mass_sq_range[rt2]
         dtype = [(rt1, np.float), (rt2, np.float)]
         data = np.empty(ngen, dtype)
         rect_square = (msq1_hi - msq1_lo) * (msq2_hi - msq2_lo)
@@ -26,15 +27,15 @@ class PhspGen(DalitzPhaseSpace):
             new_msq2 = np.random.uniform(msq2_lo, msq2_hi, ngen)
             counts += len(new_msq2)
             data[rt1], data[rt2] = new_msq1, new_msq2
-            mask = self.inside(data)
+            mask = self.phsp.inside(data)
             msq1 = msq1 + new_msq1[mask].tolist()
             msq2 = msq2 + new_msq2[mask].tolist()
             if majorant is not None:
                 add_maj = np.random.uniform(0, majorant, ngen)
                 maj = maj + add_maj[mask].tolist()
         if area:
-            self.area = rect_square * len(msq1) / counts
-            print('area {}'.format(self.area))
+            self.phsp.area = rect_square * len(msq1) / counts
+            print('area {}'.format(self.phsp.area))
         data = np.empty(nevt, dtype=dtype)
         data[rt1], data[rt2] = msq1[:nevt], msq2[:nevt]
         if full:
@@ -48,22 +49,22 @@ class PhspGen(DalitzPhaseSpace):
         msq1, msq2, rt1, rt2 = DalitzPhaseSpace.unpack_data(data)
         df = np.empty(len(msq1), dtype=[
             (rt1, np.float), (rt2, np.float),
-            (self.thirdRt(rt1, rt2), np.float),
+            (self.phsp.thirdRt(rt1, rt2), np.float),
             ('alpha', np.float), ('beta', np.float),
             ('eA', np.float), ('eB', np.float), ('eC', np.float),
             ('pA', np.float, (3,)), ('pB', np.float, (3,)), ('pC', np.float, (3,))
             ])
-        df[rt1], df[rt2], df[self.thirdRt(rt1, rt2)] = msq1, msq2, self.thirdMsq(msq1, msq2)
+        df[rt1], df[rt2], df[self.phsp.thirdRt(rt1, rt2)] = msq1, msq2, self.phsp.thirdMsq(msq1, msq2)
         df['alpha'] = np.random.rand(len(df)) * 2. * np.pi
         df['beta']  = np.random.rand(len(df)) * 2. - 1.
         
-        df['eA'] = (df['AB'] + df['AC'] - self.msq['B'] - self.msq['C']) / (2. * self.m['M'])
-        df['eB'] = (self.msq['M'] + self.msq['B'] - df['AC']) / (2. * self.m['M'])
-        df['eC'] = (self.msq['M'] + self.msq['C'] - df['AB']) / (2. * self.m['M'])
+        df['eA'] = (df['AB'] + df['AC'] - self.phsp.msq['B'] - self.phsp.msq['C']) / (2. * self.phsp.m['M'])
+        df['eB'] = (self.phsp.msq['M'] + self.phsp.msq['B'] - df['AC']) / (2. * self.phsp.m['M'])
+        df['eC'] = (self.phsp.msq['M'] + self.phsp.msq['C'] - df['AB']) / (2. * self.phsp.m['M'])
 
-        pzA = np.sqrt(df['eA']**2 - self.msq['A'])
-        pzB = (self.msq['B'] + self.msq['A'] + 2.*df['eA']*df['eB'] - df['AB']) / (2.*pzA)
-        pzC = (self.msq['C'] + self.msq['A'] + 2.*df['eA']*df['eC'] - df['AC']) / (2.*pzA)
+        pzA = np.sqrt(df['eA']**2 - self.phsp.msq['A'])
+        pzB = (self.phsp.msq['B'] + self.phsp.msq['A'] + 2.*df['eA']*df['eB'] - df['AB']) / (2.*pzA)
+        pzC = (self.phsp.msq['C'] + self.phsp.msq['A'] + 2.*df['eA']*df['eC'] - df['AC']) / (2.*pzA)
         pxB = np.sqrt(np.abs(df['eB']**2 - pzB**2 - self.msq['B']))
 
         df['pA'] = np.array([np.zeros(len(df)), np.zeros(len(df)), pzA]).T

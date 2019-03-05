@@ -4,30 +4,29 @@ import numpy as np
 from DalitzModel import DalitzModel
 from PhspGen import PhspGen
 
-class DPGen(PhspGen, DalitzModel):
+class DPGen(PhspGen):
     """ """
-    def __init__(self, ma, mb, mc, md):
+    def __init__(self, model):
         """ Constructor """
-        super(DPGen, self).__init__(ma, mb, mc, md)
+        super(DPGen, self).__init__(model)
         self.majorant = None
+        self.model = model
 
     def assess_majorant(self, ntries=10**6):
         """ Assess majorant with ntries random tries """
-        print('ass before')
-        self.majorant = 1.5 * max(self.density(super(DPGen, self).__call__('AB', 'BC', ntries, False)))
-        print('ass after')
+        data = super(DPGen, self).__call__('AB', 'AC', ntries, False)
+        self.majorant = 1.5 * max(np.abs(self.model(data)))
         return self.majorant
 
     def __call__(self, nevt, rt1='AB', rt2='AC', silent=False):
         """ Get sample with Neuman method """
         if self.majorant is None:
             self.assess_majorant()
-        data = np.empty(nevt, [(rt1, np.float), (rt2, np.float)])
         msq1, msq2, ngen, ntry = [], [], 0, 0
         while ngen < nevt:
             print('{} {}'.format(ngen, nevt))
             usmpl, rndm = super(DPGen, self).__call__(rt1, rt2, nevt, False, self.majorant)
-            mask = self.density(usmpl) > rndm
+            mask = self.model.density(usmpl) > rndm
             msq1 += usmpl[rt1][mask].tolist()
             msq2 += usmpl[rt2][mask].tolist()
             ngen += len(msq1)
@@ -35,6 +34,7 @@ class DPGen(PhspGen, DalitzModel):
             if not silent:
                 print('{} events generated'.format(len(ngen)))
         print('Efficiency: {}'.format(float(ngen) / ntry))
+        data = np.empty(len(msq1), [(rt1, np.float), (rt2, np.float)])
         data[rt1], data[rt2] = msq1, msq2
         return data
 
@@ -44,7 +44,7 @@ class DPGen(PhspGen, DalitzModel):
             data = super(DPGen, self).__call__('AB', 'BC', nevt, False, None, True)
         else:
             data = super(DPGen, self).__call__('AB', 'BC', nevt, False)
-        return self.density(data).sum() / nevt * self.area
+        return self.model.density(data).sum() / nevt * self.area
 
 def main():
     """ Unit test """
