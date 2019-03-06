@@ -183,8 +183,8 @@ class DalitzPhaseSpace(object):
 
 def limited_mass_linspace(mmin, mmax, ndots, phsp, rt):
     """ Set phase space limits if necessary """
-    return np.linspace(max(phsp.mass_range[rt][0], mmin),
-                       min(mmax, phsp.mass_range[rt][1]), ndots+1)[:-1]
+    return np.linspace(max(np.sqrt(phsp.mass_sq_range[rt][0]), mmin),
+                       min(mmax, np.sqrt(phsp.mass_sq_range[rt][1])), ndots+1)[:-1]
 
 def phsp_edge(phsp, rt1, rt2):
     """ Calculate phase space edges """

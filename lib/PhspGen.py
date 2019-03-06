@@ -8,7 +8,6 @@ class PhspGen(object):
     def __init__(self, phsp):
         """ Constructor """
         self.phsp = phsp
-        super(PhspGen, self).__init__(phsp.m['A'], phsp.m['B'], phsp.m['C'], phsp.m['M'])
 
     def __call__(self, rt1, rt2, nevt, full=True, majorant=None, area=False):
         """ Uniformly distributed events """
@@ -65,7 +64,7 @@ class PhspGen(object):
         pzA = np.sqrt(df['eA']**2 - self.phsp.msq['A'])
         pzB = (self.phsp.msq['B'] + self.phsp.msq['A'] + 2.*df['eA']*df['eB'] - df['AB']) / (2.*pzA)
         pzC = (self.phsp.msq['C'] + self.phsp.msq['A'] + 2.*df['eA']*df['eC'] - df['AC']) / (2.*pzA)
-        pxB = np.sqrt(np.abs(df['eB']**2 - pzB**2 - self.msq['B']))
+        pxB = np.sqrt(np.abs(df['eB']**2 - pzB**2 - self.phsp.msq['B']))
 
         df['pA'] = np.array([np.zeros(len(df)), np.zeros(len(df)), pzA]).T
         df['pB'] = np.array([              pxB, np.zeros(len(df)), pzB]).T

@@ -43,13 +43,15 @@ def plot_ddist(mab, mbc, bins=200, num=None):
     fig.colorbar(hist[3], ax=ax, pad=0.02)
     return fig
 
-def projections(mab_sq, mac_sq, mbc_sq):
+def projections(data, color='steelblue', dens=False, alpha=0.6,
+        weights=None, figax=None):
     """ Three Dalitz plot projections """
-    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 3))
-    ax1.hist(np.sqrt(mab_sq), bins=100, normed=True, edgecolor = "none", color=['steelblue'])
-    ax2.hist(np.sqrt(mac_sq), bins=100, normed=True, edgecolor = "none", color=['steelblue'])
-    ax3.hist(np.sqrt(mbc_sq), bins=100, normed=True, edgecolor = "none", color=['steelblue'])
-    return fig
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(16, 3)) if figax is None else figax
+    mab_sq, mac_sq, mbc_sq = [data[key] for key in ['AB', 'AC', 'BC']]
+    ax1.hist(np.sqrt(mab_sq), bins=100, density=dens, edgecolor="none", color=color, alpha=alpha, weights=weights)
+    ax2.hist(np.sqrt(mac_sq), bins=100, density=dens, edgecolor="none", color=color, alpha=alpha, weights=weights)
+    ax3.hist(np.sqrt(mbc_sq), bins=100, density=dens, edgecolor="none", color=color, alpha=alpha, weights=weights)
+    return (fig, (ax1, ax2, ax3))
 
 def effPlot(eff, x, y, num=None):
     """ Dalitz plot efficiency plot """
@@ -57,10 +59,7 @@ def effPlot(eff, x, y, num=None):
     ax = fig.add_subplot(111)
     X, Y = np.meshgrid(x, y)
     plt.tight_layout()
-    print(X.shape)
-    print(Y.shape)
-    print(eff.shape)
     # mask = (eff > 0)
-    im = ax.pcolormesh(X, Y, eff, cmap=plt.cm.tab10)
+    im = ax.pcolormesh(X, Y, eff, cmap=plt.cm.PuBu)
     fig.colorbar(im, ax=ax, pad=0.02)
     return fig
