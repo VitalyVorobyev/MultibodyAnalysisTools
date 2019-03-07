@@ -9,7 +9,7 @@ class PhspGen(object):
         """ Constructor """
         self.phsp = phsp
 
-    def __call__(self, rt1, rt2, nevt, full=True, majorant=None, area=False):
+    def __call__(self, nevt, rt1='AB', rt2='AC', full=True, majorant=None, area=False):
         """ Uniformly distributed events """
         # batch size
         ngen = min(10**6, 3*nevt)

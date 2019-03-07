@@ -14,29 +14,29 @@ class DPGen(PhspGen):
 
     def assess_majorant(self, ntries=10**6):
         """ Assess majorant with ntries random tries """
-        data = super(DPGen, self).__call__('AB', 'AC', ntries, False)
-        self.majorant = 1.5 * max(np.abs(self.model(data)))
+        data = super(DPGen, self).__call__(ntries, 'AB', 'AC', False)
+        self.majorant = 1.5 * max(self.model.density(data))
         return self.majorant
 
-    def __call__(self, nevt, rt1='AB', rt2='AC', silent=False):
+    def __call__(self, nevt, rt1='AB', rt2='AC', full=False, silent=False):
         """ Get sample with Neuman method """
         if self.majorant is None:
             self.assess_majorant()
         msq1, msq2, ngen, ntry = [], [], 0, 0
         while ngen < nevt:
             print('{} {}'.format(ngen, nevt))
-            usmpl, rndm = super(DPGen, self).__call__(rt1, rt2, nevt, False, self.majorant)
+            usmpl, rndm = super(DPGen, self).__call__(nevt, rt1, rt2, False, self.majorant)
             mask = self.model.density(usmpl) > rndm
             msq1 += usmpl[rt1][mask].tolist()
             msq2 += usmpl[rt2][mask].tolist()
             ngen += len(msq1)
             ntry += nevt
             if not silent:
-                print('{} events generated'.format(len(ngen)))
+                print('{} events generated'.format(ngen))
         print('Efficiency: {}'.format(float(ngen) / ntry))
         data = np.empty(len(msq1), [(rt1, np.float), (rt2, np.float)])
         data[rt1], data[rt2] = msq1, msq2
-        return data
+        return self.dalitzToLotentz(data) if full else data
 
     def integrate(self, nevt=10**6):
         """ MC integral """
@@ -48,10 +48,10 @@ class DPGen(PhspGen):
 
 def main():
     """ Unit test """
-    gen = DPGen(0.51, 0.135, 0.135, 1.865)
-    gen.add_bw('rho(770)', .770, .1490, 1, 'BC')
-    gen.add_bw('K*', .89166, 0.0508, 1, 'AB', 0.638*np.exp(1j*np.radians(133.2)))
-    data = gen(10**3, 'AB', 'BC', silent=True)
+    # gen = DPGen(0.51, 0.135, 0.135, 1.865)
+    # gen.add_bw('rho(770)', .770, .1490, 1, 'BC')
+    # gen.add_bw('K*', .89166, 0.0508, 1, 'AB', 0.638*np.exp(1j*np.radians(133.2)))
+    # data = gen(10**3, 'AB', 'BC', silent=True)
 
 if __name__ == '__main__':
     main()
