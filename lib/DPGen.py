@@ -18,7 +18,7 @@ class DPGen(PhspGen):
         self.majorant = 1.5 * max(self.model.density(data))
         return self.majorant
 
-    def __call__(self, nevt, rt1='AB', rt2='AC', full=False, silent=False):
+    def __call__(self, nevt, rt1='AB', rt2='AC', full=True, silent=False):
         """ Get sample with Neuman method """
         if self.majorant is None:
             self.assess_majorant()

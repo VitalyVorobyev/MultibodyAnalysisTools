@@ -4,7 +4,7 @@ import numpy as np
 
 class Detector(object):
     """ """
-    def __init__(self, thetacut=10., ptcut=0.05, trkprob=1., momres=0.05):
+    def __init__(self, thetacut=10., ptcut=0.05, trkprob=1., momres=0.02):
         """ Constructor args:
             - thetacut (degrees): only particles with polar angele in the range [thetacut, 180 - thetacut] are accepted
             - ptcut (GeV): only particles with transverce momentum larger then ptcur are accepted
@@ -23,6 +23,18 @@ class Detector(object):
             ptsq, costhsq = self.__ptsq_and_costhsq(data, key)
             mask = np.logical_and(mask, ptsq > self.ptsqcut, costhsq < self.costhsqcut)
         return mask
+
+    def apply(self, data, mask=None):
+        """ """
+        if mask is None:
+            mask = self.effMask(data)
+        data = data[mask]
+        psam = np.random.normal(0., self.momres, (len(data), 3, 3))
+        for idx, key in enumerate('ABC'):
+            mass = np.sqrt(data['e'+key]**2 - np.sum(data['p'+key]**2, axis=-1))
+            data['p'+key] = psam[idx, :] * psam[:, idx]
+            data['e'+key] = np.sqrt(mass**2 + np.sum(data['p'+key]**2, axis=-1))
+        return data
 
     def __ptsq_and_costhsq(self, data, key):
         """ Calculate transverse momentum """
