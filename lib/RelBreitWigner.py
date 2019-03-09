@@ -46,6 +46,7 @@ class MassDependentWidth(object):
         self.width = width
         self.power = 2*spin+1
         self.momentum = momentum
+
     def __call__(self, mass, momentum, ffact):
         """ Get width value """
         return self.width * (momentum / self.momentum)**self.power * self.mass /\
@@ -63,17 +64,20 @@ class VarWidthRelBW(object):
         self.radius = 0.5
         self.spin = spin
         self.width = MassDependentWidth(mass, width, spin, init_mom)
+
     def __call__(self, mass_sq, momentum):
         """ Calculate for s """
         mass = np.sqrt(mass_sq)
         ffact = bwff(momentum, self.width.momentum, self.radius, self.spin)
         width = self.width(mass, momentum, ffact)
         return 1. / (-mass_sq + self.mass_sq - 1j * mass * width)
+
     def set_mass(self, mass, momentum):
         """ Change mass """
         self.mass_sq = mass**2
         self.width.mass = mass
         self.width.momentum = momentum
+
     def set_width(self, width):
         """ Change width """
         self.width.width = width

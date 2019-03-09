@@ -8,9 +8,12 @@ import numpy as np
 
 class DalitzPhaseSpace(object):
     """ Dalitz phase space """
-    def __init__(self, ma, mb, mc, md):
+    def __init__(self, ma, mb, mc, md, silent=True):
         """ Constructor """
-        mass = np.array([ma, mb, mc, md])
+        if hasattr(md, 'mass'):
+            mass = np.array([ma.mass, mb.mass, mc.mass, md.mass]) / 10**3
+        else:
+            mass = np.array([ma, mb, mc, md])
         mass_sq = mass**2
         self.msqSum = sum(mass_sq)
         # Lookup dicts
@@ -36,6 +39,8 @@ class DalitzPhaseSpace(object):
             'AB' : [self.mr_sq_min('AB'), self.mr_sq_max('AB')],
             'AC' : [self.mr_sq_min('AC'), self.mr_sq_max('AC')],
             'BC' : [self.mr_sq_min('BC'), self.mr_sq_max('BC')]}
+        if not silent:
+            print(self)
 
     def __str__(self):
         """ to str """

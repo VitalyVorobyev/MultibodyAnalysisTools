@@ -4,11 +4,17 @@ import numpy as np
 
 class Detector(object):
     """ """
-    def __init__(self, thetacut=10., ptcut=0.05, trkprob=1.):
-        """ """
+    def __init__(self, thetacut=10., ptcut=0.05, trkprob=1., momres=0.05):
+        """ Constructor args:
+            - thetacut (degrees): only particles with polar angele in the range [thetacut, 180 - thetacut] are accepted
+            - ptcut (GeV): only particles with transverce momentum larger then ptcur are accepted
+            - trkprob: probability of succesfull track reconstruction in the detector (single track detection efficiency)
+            - momres: momentum resolution
+        """
         self.costhsqcut = np.cos(thetacut * np.pi / 180.)**2
         self.ptsqcut = ptcut**2
         self.trkprob = trkprob
+        self.momres = momres
 
     def effMask(self, data, keys=['pA', 'pB', 'pC']):
         """ Apply detection efficiency to data """
