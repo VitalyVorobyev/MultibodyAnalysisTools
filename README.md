@@ -11,7 +11,9 @@
 
 ## Tutorials
 A set of tutorials is available to get familiar with available tools:
- * [Dalitz phase space](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/DalitzPhaseSpace.ipynb) --- introduction to the `DalitzPhaseSpace` class and phase space event generation
- * [Dalitz Resonance](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/DalitzResonance.ipynb) --- introduction to the decay dynamics and event generation tools
- * [Simple Interference](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/SimpleInterference.ipynb) --- properties of the Breit-Wigner resonance parameterization
- * [Detection Efficiency](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/DetectionEfficiency.ipynb) --- particle detection effects on kinematic distributions
+ * [Dalitz phase space](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/1. DalitzPhaseSpace.ipynb) --- introduction to the `DalitzPhaseSpace` class and phase space event generation
+ * [Breit-Wigner shape](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/2. BreitWignerShape.ipynb) --- properties of the Breit-Wigner resonance parameterization
+ * [Dalitz resonance](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/3. DalitzResonance.ipynb) --- introduction to the decay dynamics and event generation tools
+ * [Detection efficiency](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/4. DetectionEfficiency.ipynb) --- particle detection effects on kinematic distributions
+ * [Model parameters fit](https://github.com/VitalyVorobyev/MultibodyAnalysisTools/blob/master/tutorials/5.%20MinuitFit.ipynb)
+
