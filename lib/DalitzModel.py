@@ -10,7 +10,7 @@ from BWRes import *
 
 class DalitzModel(DalitzPhaseSpace):
     """ Dalitz model """
-    def __init__(self, ma, mb, mc, md):
+    def __init__(self, ma, mb, mc, md, ):
         """ Constructor with DalitzPhaseSpace object """
         super(DalitzModel, self).__init__(ma, mb, mc, md)
         self.rlist = {'AB' : [], 'AC' : [], 'BC' : []}
