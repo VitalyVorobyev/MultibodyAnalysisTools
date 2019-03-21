@@ -13,9 +13,16 @@ class RelBW(object):
         self.mass = mass
         self.mass_sq = mass**2
         self.width = width
+
     def __call__(self, mass_sq):
         """ Calculate for s """
         return 1. / (self.mass_sq - mass_sq - 1j * self.mass * self.width)
+    
+    def dens(self, mass_sq):
+        """ Density """
+        amp = self.__call__(mass_sq)
+        return amp.real**2 + amp.imag**2
+
     def __str__(self):
         """ For the print method """
         return "Relativistic Breit-Wigner lineshape:\n" +\
